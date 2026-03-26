@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Calendar — Birthday Bot{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">📅 Birthday Calendar</h1>
+    <p class="page-subtitle">A year-at-a-glance view of all celebrations</p>
+  </div>
+</div>
+
+<div class="calendar-grid">
+  {% for month in months %}
+  <div class="cal-month {% if month.num == today.month %}cal-current{% endif %}">
+    <div class="cal-header theme-month-{{ month.num }}">
+      <span class="cal-month-name">{{ month.name }}</span>
+      {% if month.birthdays %}
+      <span class="cal-count">{{ month.birthdays|length }}</span>
+      {% endif %}
+    </div>
+    <div class="cal-body">
+      {% if month.birthdays %}
+        {% for bday in month.birthdays %}
+        <a href="{{ url_for('person_history', id=bday.id) }}" class="cal-entry {% if bday.is_today %}cal-entry-today{% endif %}">
+          <span class="cal-day">{{ bday.birth_date.day }}</span>
+          <span class="cal-dot theme-{{ bday.card_theme }}"></span>
+          <span class="cal-name">{{ bday.name }}</span>
+          <span class="cal-rel">{{ bday.relationship }}</span>
+          {% if bday.days_until <= 7 and bday.days_until >= 0 %}
+          <span class="cal-soon">{% if bday.days_until == 0 %}Today!{% elif bday.days_until == 1 %}Tomorrow{% else %}{{ bday.days_until }}d{% endif %}</span>
+          {% endif %}
+        </a>
+        {% endfor %}
+      {% else %}
+        <p class="cal-empty">No birthdays</p>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

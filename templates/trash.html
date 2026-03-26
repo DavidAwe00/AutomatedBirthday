@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Trash — Birthday Bot{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">🗑️ Trash</h1>
+    <p class="page-subtitle">Deleted birthdays — restore or permanently remove</p>
+  </div>
+  <a href="{{ url_for('index') }}" class="btn btn-secondary">← Dashboard</a>
+</div>
+
+{% if deleted %}
+<div class="birthday-list">
+  {% for bday in deleted %}
+  <div class="list-item" style="opacity:0.8;">
+    <div class="list-avatar theme-{{ bday.card_theme }}">{{ bday.name[0].upper() }}</div>
+    <div class="list-info">
+      <div class="list-name">{{ bday.name }}</div>
+      <div class="list-meta">
+        <span>{{ bday.relationship }}</span> •
+        <span>{{ bday.birth_date.strftime('%B %d, %Y') }}</span> •
+        <span style="color:#ef4444;">Deleted {{ bday.deleted_at.strftime('%b %d, %Y') }}</span>
+      </div>
+    </div>
+    <div class="list-actions">
+      <form method="POST" action="{{ url_for('restore_birthday', id=bday.id) }}" style="display:inline">
+        <button type="submit" class="btn btn-sm btn-send">↩️ Restore</button>
+      </form>
+      <form method="POST" action="{{ url_for('delete_permanent', id=bday.id) }}" style="display:inline"
+            onsubmit="return confirm('Permanently delete {{ bday.name }}? This cannot be undone.')">
+        <button type="submit" class="btn btn-sm btn-delete">🗑️ Delete Forever</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-icon">🧹</div>
+  <h3>Trash is empty</h3>
+  <p>Deleted birthdays appear here and can be restored within 30 days.</p>
+  <a href="{{ url_for('index') }}" class="btn btn-primary">Back to Dashboard</a>
+</div>
+{% endif %}
+{% endblock %}

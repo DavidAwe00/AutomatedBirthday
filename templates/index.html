@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Birthday Bot{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">🎉 Birthday Dashboard</h1>
+    <p class="page-subtitle">Manage and automate heartfelt birthday messages</p>
+  </div>
+  <div class="header-actions">
+    <a href="{{ url_for('export_csv') }}" class="btn btn-secondary" title="Export to CSV">📤 Export</a>
+    <a href="{{ url_for('import_csv') }}" class="btn btn-secondary">📥 Import</a>
+    <a href="{{ url_for('add_birthday') }}" class="btn btn-primary">➕ Add Birthday</a>
+  </div>
+</div>
+
+<!-- Stats row -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-icon">🎂</div>
+    <div class="stat-value">{{ stats.total }}</div>
+    <div class="stat-label">Total Birthdays</div>
+  </div>
+  <div class="stat-card stat-today">
+    <div class="stat-icon">🥳</div>
+    <div class="stat-value">{{ stats.today }}</div>
+    <div class="stat-label">Today's Birthdays</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">📅</div>
+    <div class="stat-value">{{ stats.this_week }}</div>
+    <div class="stat-label">This Week</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">📨</div>
+    <div class="stat-value">{{ stats.sent_total }}</div>
+    <div class="stat-label">Messages Sent</div>
+  </div>
+</div>
+
+<!-- Today's birthdays -->
+{% if today_birthdays %}
+<section class="section">
+  <div class="section-header">
+    <h2 class="section-title">🥳 Today's Celebrations</h2>
+    <span class="badge badge-today">{{ today_birthdays|length }} today</span>
+  </div>
+  <div class="birthday-grid">
+    {% for bday in today_birthdays %}
+    <div class="birthday-card today-card">
+      <div class="card-theme-bar theme-{{ bday.card_theme }}"></div>
+      <div class="card-body">
+        <a href="{{ url_for('person_history', id=bday.id) }}" class="card-avatar theme-{{ bday.card_theme }}">{{ bday.name[0].upper() }}</a>
+        <div class="card-info">
+          <h3 class="card-name">
+            <a href="{{ url_for('person_history', id=bday.id) }}" style="color:inherit;text-decoration:none;">{{ bday.name }}</a>
+            {% if bday.streak > 1 %}<span class="streak-badge">🔥 {{ bday.streak }}yr streak</span>{% endif %}
+          </h3>
+          <p class="card-meta">
+            <span class="tag tag-rel">{{ bday.relationship }}</span>
+            <span class="tag tag-age">🎂 Turning {{ bday.age_turning }}</span>
+            {% if bday.use_ai_message %}<span class="tag tag-ai">✨ AI</span>{% endif %}
+          </p>
+          <p class="card-email">📧 {{ bday.email }}</p>
+          {% if bday.last_sent %}<p class="card-sent">✅ Message sent today</p>{% endif %}
+        </div>
+      </div>
+      <div class="card-actions">
+        <form method="POST" action="{{ url_for('send_now', id=bday.id) }}" style="display:inline">
+          <button type="submit" class="btn btn-sm btn-send">🚀 Send Now</button>
+        </form>
+        <a href="{{ url_for('edit_birthday', id=bday.id) }}" class="btn btn-sm btn-edit">✏️</a>
+        <form method="POST" action="{{ url_for('delete_birthday', id=bday.id) }}" style="display:inline" onsubmit="return confirm('Move {{ bday.name }} to trash?')">
+          <button type="submit" class="btn btn-sm btn-delete">🗑️</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<!-- Search & filter bar -->
+<section class="section">
+  <div class="section-header">
+    <h2 class="section-title">📅 All Birthdays</h2>
+    {% if birthdays %}<span class="badge">{{ birthdays|length }} shown</span>{% endif %}
+    {% if trash_count > 0 %}<a href="{{ url_for('trash') }}" class="trash-link">🗑️ Trash ({{ trash_count }})</a>{% endif %}
+  </div>
+
+  <form method="GET" action="{{ url_for('index') }}" class="filter-bar">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" name="q" value="{{ q }}" class="search-input" placeholder="Search by name or email…" id="searchInput">
+      {% if q %}<button type="button" class="search-clear" onclick="clearSearch()">×</button>{% endif %}
+    </div>
+    <select name="rel" class="filter-select">
+      <option value="">All Relationships</option>
+      {% for r in ['Friend', 'Family', 'Colleague', 'Partner'] %}
+      <option value="{{ r }}" {{ 'selected' if rel_filter == r }}>{{ r }}</option>
+      {% endfor %}
+    </select>
+    <select name="sort" class="filter-select">
+      <option value="upcoming" {{ 'selected' if sort == 'upcoming' }}>Sort: Upcoming</option>
+      <option value="name" {{ 'selected' if sort == 'name' }}>Sort: Name A–Z</option>
+      <option value="streak" {{ 'selected' if sort == 'streak' }}>Sort: Streak</option>
+    </select>
+    <button type="submit" class="btn btn-secondary btn-sm">Filter</button>
+    {% if q or rel_filter %}<a href="{{ url_for('index') }}" class="btn btn-secondary btn-sm">Clear</a>{% endif %}
+  </form>
+
+  {% if birthdays %}
+  <div class="birthday-list">
+    {% for bday in birthdays %}
+    <div class="list-item {% if bday.is_today %}list-item-today{% endif %}">
+      <a href="{{ url_for('person_history', id=bday.id) }}" class="list-avatar theme-{{ bday.card_theme }}">{{ bday.name[0].upper() }}</a>
+      <div class="list-info">
+        <div class="list-name">
+          <a href="{{ url_for('person_history', id=bday.id) }}" style="color:inherit;text-decoration:none;">{{ bday.name }}</a>
+          {% if bday.is_today %}<span class="badge badge-today">🥳 Today!</span>{% endif %}
+          {% if bday.streak > 1 %}<span class="streak-mini">🔥{{ bday.streak }}</span>{% endif %}
+          {% if bday.use_ai_message %}<span class="tag tag-ai">✨ AI</span>{% endif %}
+        </div>
+        <div class="list-meta">
+          <span>{{ bday.relationship }}</span>
+          <span>•</span>
+          <span>{{ bday.birth_date.strftime('%B %d') }}</span>
+          <span>•</span>
+          <span>Turning {{ bday.age_turning }}</span>
+          {% if bday.timezone and bday.timezone != 'UTC' %}
+          <span>•</span><span class="tz-tag">🌍 {{ bday.timezone }}</span>
+          {% endif %}
+        </div>
+      </div>
+      <div class="list-countdown {% if bday.days_until == 0 %}countdown-today{% elif bday.days_until <= 7 %}countdown-soon{% endif %}">
+        {% if bday.days_until == 0 %}🥳 Today
+        {% elif bday.days_until == 1 %}⏰ Tomorrow
+        {% else %}{{ bday.days_until }}d
+        {% endif %}
+      </div>
+      <div class="list-actions">
+        <form method="POST" action="{{ url_for('send_now', id=bday.id) }}" style="display:inline">
+          <button type="submit" class="btn btn-sm btn-send" title="Send birthday message now">🚀</button>
+        </form>
+        <a href="{{ url_for('edit_birthday', id=bday.id) }}" class="btn btn-sm btn-edit" title="Edit">✏️</a>
+        <form method="POST" action="{{ url_for('delete_birthday', id=bday.id) }}" style="display:inline" onsubmit="return confirm('Move {{ bday.name }} to trash?')">
+          <button type="submit" class="btn btn-sm btn-delete" title="Delete">🗑️</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">🎈</div>
+    {% if q or rel_filter %}
+    <h3>No results found</h3>
+    <p>Try adjusting your search or filter.</p>
+    <a href="{{ url_for('index') }}" class="btn btn-secondary">Clear filters</a>
+    {% else %}
+    <h3>No birthdays yet</h3>
+    <p>Start by adding your first birthday to celebrate!</p>
+    <a href="{{ url_for('add_birthday') }}" class="btn btn-primary">Add First Birthday</a>
+    {% endif %}
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

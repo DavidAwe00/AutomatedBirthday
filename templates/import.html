@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Import Birthdays — Birthday Bot{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">📥 Bulk Import</h1>
+    <p class="page-subtitle">Upload a CSV file to add multiple birthdays at once</p>
+  </div>
+  <a href="{{ url_for('index') }}" class="btn btn-secondary">← Back</a>
+</div>
+
+<div class="import-container">
+
+  <!-- Upload form -->
+  <div class="import-card">
+    <form method="POST" enctype="multipart/form-data" class="import-form">
+      <div class="upload-zone" id="uploadZone">
+        <div class="upload-icon">📂</div>
+        <p class="upload-title">Drop your CSV file here or click to browse</p>
+        <p class="upload-hint">Supported: .csv files up to 1MB</p>
+        <input type="file" name="csv_file" id="csv_file" accept=".csv" class="file-input" required>
+        <label for="csv_file" class="btn btn-secondary" style="margin-top:12px;">Choose File</label>
+        <p id="fileName" class="file-name"></p>
+      </div>
+      <button type="submit" class="btn btn-primary" style="margin-top:16px;" id="importBtn" disabled>
+        📥 Import Birthdays
+      </button>
+    </form>
+  </div>
+
+  <!-- Format guide -->
+  <div class="import-card">
+    <h3 style="margin-bottom:16px;font-size:17px;font-weight:700;">📋 CSV Format</h3>
+    <p style="color:#666;font-size:14px;margin-bottom:12px;">Your CSV should have these columns (header row required):</p>
+    <div class="code-block" style="margin-bottom:16px;">name,email,birth_date,relationship,card_theme,notes
+Jane Doe,jane@example.com,1995-06-15,Friend,sunset,loves coffee
+John Smith,john@example.com,1988-03-22,Family,ocean,
+Alice Lee,alice@work.com,1992-11-08,Colleague,rose,</div>
+    <div class="format-table">
+      <div class="format-row format-header">
+        <span>Column</span><span>Required</span><span>Values</span>
+      </div>
+      {% for col, req, vals in [
+        ('name', True, 'Any text'),
+        ('email', True, 'Valid email'),
+        ('birth_date', True, 'YYYY-MM-DD or MM/DD/YYYY'),
+        ('relationship', False, 'Friend, Family, Colleague, Partner'),
+        ('card_theme', False, 'sunset, ocean, forest, rose, midnight, gold'),
+        ('notes', False, 'Any text'),
+      ] %}
+      <div class="format-row">
+        <span><code>{{ col }}</code></span>
+        <span>{{ '✅ Yes' if req else '— No' }}</span>
+        <span style="color:#666;font-size:13px;">{{ vals }}</span>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div style="margin-top:20px;">
+      <a href="{{ url_for('export_csv') }}" class="btn btn-secondary">📤 Download Template (existing data)</a>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const fileInput = document.getElementById('csv_file');
+const fileNameEl = document.getElementById('fileName');
+const importBtn = document.getElementById('importBtn');
+const uploadZone = document.getElementById('uploadZone');
+
+fileInput.addEventListener('change', () => {
+  if (fileInput.files.length > 0) {
+    fileNameEl.textContent = '📄 ' + fileInput.files[0].name;
+    importBtn.disabled = false;
+    uploadZone.classList.add('has-file');
+  }
+});
+
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadZone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file && file.name.endsWith('.csv')) {
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    fileInput.files = dt.files;
+    fileNameEl.textContent = '📄 ' + file.name;
+    importBtn.disabled = false;
+    uploadZone.classList.add('has-file');
+  }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if birthday else 'Add' }} Birthday — Birthday Bot{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ '✏️ Edit Birthday' if birthday else '➕ Add Birthday' }}</h1>
+    <p class="page-subtitle">{{ 'Update details for ' + birthday.name if birthday else 'Add someone special to your birthday list' }}</p>
+  </div>
+  <a href="{{ url_for('index') }}" class="btn btn-secondary">← Back</a>
+</div>
+
+<div class="form-container">
+  <form method="POST" class="birthday-form">
+
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label" for="name">Full Name <span class="required">*</span></label>
+        <input type="text" id="name" name="name" class="form-input" required placeholder="e.g. Jane Doe" value="{{ birthday.name if birthday else '' }}">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="email">Email Address <span class="required">*</span></label>
+        <input type="email" id="email" name="email" class="form-input" required placeholder="e.g. jane@example.com" value="{{ birthday.email if birthday else '' }}">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="birth_date">Birthday <span class="required">*</span></label>
+        <input type="date" id="birth_date" name="birth_date" class="form-input" required value="{{ birthday.birth_date.isoformat() if birthday else '' }}">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="relationship">Relationship</label>
+        <select id="relationship" name="relationship" class="form-input form-select">
+          {% for rel in ['Friend', 'Family', 'Colleague', 'Partner'] %}
+          <option value="{{ rel }}" {{ 'selected' if birthday and birthday.relationship == rel }}>{{ rel }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="phone">Phone <span class="label-hint">(optional)</span></label>
+        <input type="tel" id="phone" name="phone" class="form-input" placeholder="+1 555 000 0000" value="{{ birthday.phone if birthday else '' }}">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="timezone">Their Timezone</label>
+        <select id="timezone" name="timezone" class="form-input form-select">
+          {% for tz in timezones %}
+          <option value="{{ tz }}" {{ 'selected' if birthday and birthday.timezone == tz }}>{{ tz }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+
+    <!-- Reminder days -->
+    <div class="form-group">
+      <label class="form-label">Reminder Days <span class="label-hint">(comma-separated days before, e.g. 3,7)</span></label>
+      <div class="reminder-options">
+        {% set remind_val = birthday.remind_days if birthday else '3,7' %}
+        {% for day in [1, 3, 7, 14, 30] %}
+        <label class="reminder-chip">
+          <input type="checkbox" name="remind_check_{{ day }}" value="{{ day }}" class="remind-cb" data-day="{{ day }}"
+                 {{ 'checked' if day|string in remind_val.split(',') }}>
+          <span>{{ day }}d</span>
+        </label>
+        {% endfor %}
+        <input type="hidden" name="remind_days" id="remind_days_input" value="{{ remind_val }}">
+      </div>
+    </div>
+
+    <!-- Card theme -->
+    <div class="form-group">
+      <label class="form-label">Card Theme</label>
+      <div class="theme-picker">
+        {% set themes = [
+          ('sunset', 'Sunset', '#FF5E3A', '#FFB347'),
+          ('ocean', 'Ocean', '#0A4BA3', '#00C3C8'),
+          ('forest', 'Forest', '#14703C', '#64C850'),
+          ('rose', 'Rose', '#B41E5A', '#FF78A0'),
+          ('midnight', 'Midnight', '#0F0F32', '#462882'),
+          ('gold', 'Gold', '#643C00', '#DCAA1E'),
+        ] %}
+        {% for value, label, c1, c2 in themes %}
+        <label class="theme-option">
+          <input type="radio" name="card_theme" value="{{ value }}" id="theme_{{ value }}"
+                 {{ 'checked' if (birthday and birthday.card_theme == value) or (not birthday and value == 'sunset') }}>
+          <div class="theme-swatch" style="background:linear-gradient(135deg,{{ c1 }},{{ c2 }})">
+            <span class="theme-label">{{ label }}</span>
+          </div>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Personal notes -->
+    <div class="form-group">
+      <label class="form-label" for="notes">Personal Notes <span class="label-hint">(used for AI message context)</span></label>
+      <textarea id="notes" name="notes" class="form-input form-textarea" rows="2"
+                placeholder="e.g. loves hiking, coffee enthusiast, just got a promotion…">{{ birthday.notes if birthday else '' }}</textarea>
+    </div>
+
+    <!-- AI message toggle -->
+    <div class="form-group ai-toggle-group">
+      <label class="toggle-label">
+        <input type="checkbox" name="use_ai_message" id="use_ai_message" class="toggle-input"
+               {{ 'checked' if birthday and birthday.use_ai_message }}>
+        <span class="toggle-track"></span>
+        <span class="toggle-text">
+          ✨ <strong>AI-generated message</strong>
+          <span class="label-hint"> — Uses GPT to write a unique, personal message each year</span>
+        </span>
+      </label>
+      {% if not config.OPENAI_API_KEY %}
+      <p class="settings-warn" style="margin-top:6px;">⚠️ Add OPENAI_API_KEY to .env to enable AI messages</p>
+      {% endif %}
+    </div>
+
+    <!-- Custom message -->
+    <div class="form-group">
+      <label class="form-label" for="custom_message">
+        Custom Message
+        <span class="label-hint">(overrides auto-generated — leave blank to use AI or default messages)</span>
+      </label>
+      <textarea id="custom_message" name="custom_message" class="form-input form-textarea"
+                placeholder="Write a personal birthday message… or leave empty for a heartfelt auto-generated one 💌" rows="4">{{ birthday.custom_message if birthday else '' }}</textarea>
+    </div>
+
+    <!-- Live preview -->
+    <div class="preview-section" id="previewSection">
+      <div class="section-header" style="margin-bottom:12px;">
+        <h3 class="section-title">🎨 Card Preview</h3>
+        <span class="label-hint">Updates as you type</span>
+      </div>
+      <div class="preview-loading" id="previewLoading" style="display:none">Generating…</div>
+      <img id="previewImg" class="preview-img" src="" alt="Card Preview" style="display:none"/>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary">
+        {{ '💾 Save Changes' if birthday else '🎂 Add Birthday' }}
+      </button>
+      {% if birthday %}
+      <a href="{{ url_for('person_history', id=birthday.id) }}" class="btn btn-secondary">📜 View History</a>
+      {% endif %}
+    </div>
+
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Live card preview
+let previewTimer = null;
+function triggerPreview() {
+  clearTimeout(previewTimer);
+  previewTimer = setTimeout(updatePreview, 600);
+}
+
+function updatePreview() {
+  const name = document.getElementById('name').value || 'Friend';
+  const theme = document.querySelector('input[name="card_theme"]:checked')?.value || 'sunset';
+  const loading = document.getElementById('previewLoading');
+  const img = document.getElementById('previewImg');
+  loading.style.display = 'block';
+  img.style.display = 'none';
+  fetch(`/preview-card?name=${encodeURIComponent(name)}&theme=${encodeURIComponent(theme)}`)
+    .then(r => r.blob())
+    .then(blob => {
+      img.src = URL.createObjectURL(blob);
+      img.style.display = 'block';
+      loading.style.display = 'none';
+    })
+    .catch(() => { loading.textContent = 'Preview unavailable'; });
+}
+
+document.getElementById('name').addEventListener('input', triggerPreview);
+document.querySelectorAll('input[name="card_theme"]').forEach(r => r.addEventListener('change', updatePreview));
+window.addEventListener('load', updatePreview);
+
+// Reminder days checkboxes → hidden input
+function syncRemindDays() {
+  const checked = Array.from(document.querySelectorAll('.remind-cb:checked')).map(c => c.dataset.day);
+  document.getElementById('remind_days_input').value = checked.join(',') || '0';
+}
+document.querySelectorAll('.remind-cb').forEach(cb => cb.addEventListener('change', syncRemindDays));
+
+// AI message preview
+document.getElementById('use_ai_message')?.addEventListener('change', function() {
+  const hint = document.getElementById('aiHint');
+  if (hint) hint.style.display = this.checked ? 'block' : 'none';
+});
+</script>
+{% endblock %}

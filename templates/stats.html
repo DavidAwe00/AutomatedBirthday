@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% block title %}Stats — Birthday Bot{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">📊 Statistics</h1>
+    <p class="page-subtitle">Analytics and insights about your birthday messages</p>
+  </div>
+</div>
+
+<!-- Summary cards -->
+<div class="stats-grid" style="margin-bottom:28px;">
+  <div class="stat-card">
+    <div class="stat-icon">✅</div>
+    <div class="stat-value">{{ success_count }}</div>
+    <div class="stat-label">Sent Successfully</div>
+  </div>
+  <div class="stat-card stat-today">
+    <div class="stat-icon">🎂</div>
+    <div class="stat-value">{{ all_bdays|length }}</div>
+    <div class="stat-label">Total People</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">⏰</div>
+    <div class="stat-value">{{ reminder_count }}</div>
+    <div class="stat-label">Reminders Sent</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">❌</div>
+    <div class="stat-value">{{ failed_count }}</div>
+    <div class="stat-label">Failed Sends</div>
+  </div>
+</div>
+
+<div class="charts-grid">
+
+  <!-- Birthdays by month bar chart -->
+  <div class="chart-card chart-wide">
+    <h3 class="chart-title">🗓️ Birthdays by Month</h3>
+    <canvas id="byMonthChart" height="90"></canvas>
+  </div>
+
+  <!-- Messages sent by month -->
+  <div class="chart-card chart-wide">
+    <h3 class="chart-title">📨 Messages Sent by Month</h3>
+    <canvas id="sentByMonthChart" height="90"></canvas>
+  </div>
+
+  <!-- By relationship donut -->
+  <div class="chart-card">
+    <h3 class="chart-title">💝 By Relationship</h3>
+    <canvas id="byRelChart" height="200"></canvas>
+  </div>
+
+  <!-- Themes used -->
+  <div class="chart-card">
+    <h3 class="chart-title">🎨 Card Themes Used</h3>
+    <canvas id="themesChart" height="200"></canvas>
+  </div>
+
+</div>
+
+<!-- Top streaks -->
+{% if top_streak %}
+<section class="section">
+  <div class="section-header">
+    <h2 class="section-title">🔥 Top Streaks</h2>
+    <span class="label-hint">Consecutive years remembered</span>
+  </div>
+  <div class="birthday-list">
+    {% for bday in top_streak %}
+    <div class="list-item">
+      <a href="{{ url_for('person_history', id=bday.id) }}" class="list-avatar theme-{{ bday.card_theme }}">{{ bday.name[0].upper() }}</a>
+      <div class="list-info">
+        <div class="list-name">{{ bday.name }}</div>
+        <div class="list-meta"><span>{{ bday.relationship }}</span></div>
+      </div>
+      <div class="streak-display">🔥 {{ bday.streak }} year{{ 's' if bday.streak != 1 }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<!-- Upcoming in 30 days -->
+{% if upcoming %}
+<section class="section">
+  <div class="section-header">
+    <h2 class="section-title">📅 Upcoming (Next 30 Days)</h2>
+    <span class="badge">{{ upcoming|length }}</span>
+  </div>
+  <div class="birthday-list">
+    {% for bday in upcoming %}
+    <div class="list-item {% if bday.is_today %}list-item-today{% endif %}">
+      <a href="{{ url_for('person_history', id=bday.id) }}" class="list-avatar theme-{{ bday.card_theme }}">{{ bday.name[0].upper() }}</a>
+      <div class="list-info">
+        <div class="list-name">
+          {{ bday.name }}
+          {% if bday.is_today %}<span class="badge badge-today">🥳 Today!</span>{% endif %}
+        </div>
+        <div class="list-meta"><span>{{ bday.relationship }}</span> • <span>{{ bday.birth_date.strftime('%B %d') }}</span></div>
+      </div>
+      <div class="list-countdown {% if bday.days_until == 0 %}countdown-today{% elif bday.days_until <= 7 %}countdown-soon{% endif %}">
+        {% if bday.days_until == 0 %}Today{% elif bday.days_until == 1 %}Tomorrow{% else %}{{ bday.days_until }}d{% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+const data = {{ chart_data|safe }};
+
+const THEME_COLORS = {
+  sunset: ['#FF5E3A','#FFB347'],
+  ocean: ['#0A4BA3','#00C3C8'],
+  forest: ['#14703C','#64C850'],
+  rose: ['#B41E5A','#FF78A0'],
+  midnight: ['#0F0F32','#462882'],
+  gold: ['#643C00','#DCAA1E'],
+};
+const REL_COLORS = ['#7c3aed','#10b981','#f59e0b','#ef4444','#6366f1','#ec4899'];
+const CHART_DEFAULTS = { responsive: true, plugins: { legend: { display: false } } };
+
+// Birthdays by month
+new Chart(document.getElementById('byMonthChart'), {
+  type: 'bar',
+  data: {
+    labels: data.month_names,
+    datasets: [{
+      data: data.by_month,
+      backgroundColor: data.month_names.map((_, i) => `hsl(${260 + i * 8},70%,60%)`),
+      borderRadius: 6,
+    }]
+  },
+  options: { ...CHART_DEFAULTS, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+});
+
+// Sent by month
+new Chart(document.getElementById('sentByMonthChart'), {
+  type: 'line',
+  data: {
+    labels: data.month_names,
+    datasets: [{
+      data: data.sent_by_month,
+      borderColor: '#7c3aed',
+      backgroundColor: 'rgba(124,58,237,0.12)',
+      fill: true,
+      tension: 0.4,
+      pointBackgroundColor: '#7c3aed',
+      pointRadius: 5,
+    }]
+  },
+  options: { ...CHART_DEFAULTS, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }
+});
+
+// By relationship
+const relLabels = Object.keys(data.by_relationship);
+const relValues = Object.values(data.by_relationship);
+new Chart(document.getElementById('byRelChart'), {
+  type: 'doughnut',
+  data: {
+    labels: relLabels,
+    datasets: [{ data: relValues, backgroundColor: REL_COLORS, borderWidth: 2 }]
+  },
+  options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+});
+
+// Themes
+const themeLabels = Object.keys(data.themes);
+const themeValues = Object.values(data.themes);
+const themeColors = themeLabels.map(t => THEME_COLORS[t]?.[0] || '#999');
+new Chart(document.getElementById('themesChart'), {
+  type: 'polarArea',
+  data: {
+    labels: themeLabels.map(t => t.charAt(0).toUpperCase() + t.slice(1)),
+    datasets: [{ data: themeValues, backgroundColor: themeColors.map(c => c + 'CC'), borderColor: themeColors }]
+  },
+  options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+});
+</script>
+{% endblock %}

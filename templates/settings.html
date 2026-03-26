@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}Settings — Birthday Bot{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">⚙️ Settings</h1>
+    <p class="page-subtitle">Configure email, AI, and scheduler preferences</p>
+  </div>
+</div>
+
+<div class="settings-grid">
+
+  <!-- Email Config -->
+  <div class="settings-card">
+    <div class="settings-card-header"><span class="settings-icon">📧</span><h2>Email Configuration</h2></div>
+    <div class="settings-body">
+      <div class="status-row {% if config.SENDER_EMAIL %}status-ok{% else %}status-warn{% endif %}">
+        <span>Sender Email:</span>
+        <strong>{{ config.SENDER_EMAIL or 'Not configured' }}</strong>
+        <span class="status-dot"></span>
+      </div>
+      <div class="status-row {% if config.SENDER_APP_PASSWORD %}status-ok{% else %}status-warn{% endif %}">
+        <span>App Password:</span>
+        <strong>{{ '●●●●●●●●' if config.SENDER_APP_PASSWORD else 'Not configured' }}</strong>
+        <span class="status-dot"></span>
+      </div>
+      <div class="status-row status-ok">
+        <span>Provider:</span>
+        <strong style="text-transform:capitalize;">{{ config.EMAIL_PROVIDER or 'gmail' }}</strong>
+      </div>
+      <div class="status-row status-ok">
+        <span>Sender Name:</span>
+        <strong>{{ config.SENDER_NAME }}</strong>
+      </div>
+      <div class="settings-hint">
+        <p>📝 Create a <code>.env</code> file in the project root:</p>
+        <pre class="code-block">SENDER_EMAIL=your@gmail.com
+SENDER_APP_PASSWORD=xxxx xxxx xxxx xxxx
+SENDER_NAME=Your Name
+SECRET_KEY=your-secret-key
+
+# Provider: gmail | outlook | yahoo | custom
+EMAIL_PROVIDER=gmail
+
+# For custom SMTP only:
+SMTP_HOST_CUSTOM=mail.yourdomain.com
+SMTP_PORT_CUSTOM=587</pre>
+        <p>🔑 Gmail app password: <strong>myaccount.google.com/apppasswords</strong></p>
+        <p>📮 Outlook: use your regular password with app password enabled</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Configuration -->
+  <div class="settings-card">
+    <div class="settings-card-header"><span class="settings-icon">✨</span><h2>AI Messages (OpenAI)</h2></div>
+    <div class="settings-body">
+      <div class="status-row {% if config.OPENAI_API_KEY %}status-ok{% else %}status-warn{% endif %}">
+        <span>API Key:</span>
+        <strong>{{ '●●●●●●sk-…' if config.OPENAI_API_KEY else 'Not configured' }}</strong>
+        <span class="status-dot"></span>
+      </div>
+      <div class="settings-hint">
+        <p>🤖 AI messages use GPT-4o-mini to generate unique, personalised birthday messages each year.</p>
+        <p>Add to <code>.env</code>:</p>
+        <pre class="code-block">OPENAI_API_KEY=sk-proj-xxxxxxxxxxxx</pre>
+        <p>Then enable <strong>"✨ AI-generated message"</strong> on any birthday entry.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Test Email -->
+  <div class="settings-card">
+    <div class="settings-card-header"><span class="settings-icon">🧪</span><h2>Send Test Email</h2></div>
+    <div class="settings-body">
+      <p style="color:#666;margin-bottom:16px;font-size:14px;">Send a test birthday card to yourself to verify email is working.</p>
+      <form method="POST" action="{{ url_for('test_email') }}">
+        <div class="form-group">
+          <label class="form-label">Test Name</label>
+          <input type="text" name="test_name" class="form-input" value="{{ config.SENDER_NAME }}" placeholder="Test Person">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Theme</label>
+          <select name="test_theme" class="form-input form-select">
+            <option value="sunset">🌅 Sunset</option>
+            <option value="ocean">🌊 Ocean</option>
+            <option value="forest">🌲 Forest</option>
+            <option value="rose">🌹 Rose</option>
+            <option value="midnight">🌙 Midnight</option>
+            <option value="gold">✨ Gold</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary" {% if not config.SENDER_EMAIL %}disabled{% endif %}>
+          📨 Send Test Email
+        </button>
+        {% if not config.SENDER_EMAIL %}<p class="settings-warn">⚠️ Configure email credentials first</p>{% endif %}
+      </form>
+    </div>
+  </div>
+
+  <!-- Scheduler -->
+  <div class="settings-card">
+    <div class="settings-card-header"><span class="settings-icon">⏰</span><h2>Scheduler</h2></div>
+    <div class="settings-body">
+      <div class="status-row {% if scheduler_running %}status-ok{% else %}status-warn{% endif %}">
+        <span>Status:</span>
+        <strong>{{ '🟢 Running' if scheduler_running else '🔴 Stopped' }}</strong>
+        <span class="status-dot"></span>
+      </div>
+      <div class="status-row status-ok"><span>Birthday emails:</span><strong>Daily at 8:00 AM UTC</strong></div>
+      <div class="status-row status-ok"><span>Reminder emails:</span><strong>Daily at 8:05 AM UTC</strong></div>
+      <p class="settings-hint" style="margin-top:16px;">
+        Keep the app running with <code>python app.py</code> for automation.<br>
+        Reminder days are configured per-person when adding/editing a birthday.
+      </p>
+    </div>
+  </div>
+
+  <!-- Sent Log -->
+  <div class="settings-card settings-card-full">
+    <div class="settings-card-header"><span class="settings-icon">📜</span><h2>Recent Activity Log</h2></div>
+    <div class="settings-body">
+      {% if logs %}
+      <table class="log-table">
+        <thead>
+          <tr><th>Type</th><th>Recipient</th><th>Email</th><th>Status</th><th>Sent At</th></tr>
+        </thead>
+        <tbody>
+          {% for log, name in logs %}
+          <tr>
+            <td>{{ '🎂' if log.log_type == 'birthday' else '⏰' }} {{ log.log_type|capitalize }}</td>
+            <td>{{ name }}</td>
+            <td>{{ log.recipient_email }}</td>
+            <td>
+              <span class="badge {% if log.status == 'success' %}badge-success{% else %}badge-error{% endif %}">
+                {{ '✅ Success' if log.status == 'success' else '❌ Failed' }}
+              </span>
+            </td>
+            <td>{{ log.sent_at.strftime('%b %d, %Y %H:%M') }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state" style="padding:30px 0;">
+        <div class="empty-icon">📭</div>
+        <p>No messages sent yet.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}{{ birthday.name }} — Birthday Bot{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div style="display:flex;align-items:center;gap:16px;">
+    <div class="avatar-large theme-{{ birthday.card_theme }}">{{ birthday.name[0].upper() }}</div>
+    <div>
+      <h1 class="page-title" style="margin-bottom:4px;">{{ birthday.name }}</h1>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <span class="tag tag-rel">{{ birthday.relationship }}</span>
+        <span class="tag tag-age">🎂 Turning {{ birthday.age_turning }}</span>
+        {% if birthday.streak > 1 %}<span class="streak-badge">🔥 {{ birthday.streak }}-year streak</span>{% endif %}
+        {% if birthday.use_ai_message %}<span class="tag tag-ai">✨ AI Messages</span>{% endif %}
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <a href="{{ url_for('edit_birthday', id=birthday.id) }}" class="btn btn-secondary">✏️ Edit</a>
+    <form method="POST" action="{{ url_for('send_now', id=birthday.id) }}" style="display:inline">
+      <button type="submit" class="btn btn-primary">🚀 Send Now</button>
+    </form>
+  </div>
+</div>
+
+<!-- Info cards -->
+<div class="person-info-grid">
+  <div class="info-card">
+    <div class="info-label">📧 Email</div>
+    <div class="info-value">{{ birthday.email }}</div>
+  </div>
+  <div class="info-card">
+    <div class="info-label">🎂 Birthday</div>
+    <div class="info-value">{{ birthday.birth_date.strftime('%B %d, %Y') }}</div>
+  </div>
+  <div class="info-card">
+    <div class="info-label">⏳ Next Birthday</div>
+    <div class="info-value">
+      {{ birthday.next_birthday.strftime('%B %d, %Y') }}
+      <span class="label-hint">({{ birthday.days_until }} days away)</span>
+    </div>
+  </div>
+  <div class="info-card">
+    <div class="info-label">🌍 Timezone</div>
+    <div class="info-value">{{ birthday.timezone or 'UTC' }}</div>
+  </div>
+  {% if birthday.phone %}
+  <div class="info-card">
+    <div class="info-label">📱 Phone</div>
+    <div class="info-value">{{ birthday.phone }}</div>
+  </div>
+  {% endif %}
+  <div class="info-card">
+    <div class="info-label">⏰ Remind At</div>
+    <div class="info-value">{{ birthday.remind_days }} days before</div>
+  </div>
+  {% if birthday.last_sent %}
+  <div class="info-card">
+    <div class="info-label">📨 Last Message</div>
+    <div class="info-value">{{ birthday.last_sent.strftime('%B %d, %Y') }}</div>
+  </div>
+  {% endif %}
+</div>
+
+{% if birthday.notes %}
+<div class="notes-card">
+  <div class="info-label">📝 Personal Notes</div>
+  <p>{{ birthday.notes }}</p>
+</div>
+{% endif %}
+
+{% if birthday.custom_message %}
+<div class="notes-card">
+  <div class="info-label">💌 Custom Message</div>
+  <p>{{ birthday.custom_message }}</p>
+</div>
+{% endif %}
+
+<!-- Card preview -->
+<section class="section">
+  <div class="section-header">
+    <h2 class="section-title">🎨 Gift Card Preview</h2>
+  </div>
+  <img src="{{ url_for('preview_card', name=birthday.name, theme=birthday.card_theme) }}"
+       alt="Gift Card" class="preview-img" style="max-width:600px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.12);">
+</section>
+
+<!-- Send history -->
+<section class="section">
+  <div class="section-header">
+    <h2 class="section-title">📜 Message History</h2>
+    <span class="badge">{{ logs|length }} total</span>
+  </div>
+  {% if logs %}
+  <div class="birthday-list">
+    {% for log in logs %}
+    <div class="list-item">
+      <div class="log-type-icon">{{ '🎂' if log.log_type == 'birthday' else '⏰' }}</div>
+      <div class="list-info">
+        <div class="list-name">
+          {{ 'Birthday Message' if log.log_type == 'birthday' else 'Reminder (' + log.days_before|string + ' days before)' }}
+        </div>
+        <div class="list-meta">
+          <span>{{ log.sent_at.strftime('%B %d, %Y at %H:%M UTC') }}</span>
+          {% if log.notes %}<span>• {{ log.notes[:60] }}</span>{% endif %}
+        </div>
+      </div>
+      <span class="badge {% if log.status == 'success' %}badge-success{% else %}badge-error{% endif %}">
+        {{ '✅ Sent' if log.status == 'success' else '❌ Failed' }}
+      </span>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state" style="padding:40px 0;">
+    <div class="empty-icon">📭</div>
+    <p>No messages sent yet. Use <strong>Send Now</strong> to send the first one!</p>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}
