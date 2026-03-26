@@ -4,152 +4,240 @@
 {% block content %}
 <div class="page-header">
   <div>
-    <h1 class="page-title">⚙️ Settings</h1>
-    <p class="page-subtitle">Configure email, AI, and scheduler preferences</p>
+    <h1 class="page-title">⚙️ Settings & Configuration</h1>
+    <p class="page-subtitle">Email, AI, notifications, authentication, and scheduler</p>
   </div>
 </div>
 
 <div class="settings-grid">
 
-  <!-- Email Config -->
+  <!-- Email -->
   <div class="settings-card">
     <div class="settings-card-header"><span class="settings-icon">📧</span><h2>Email Configuration</h2></div>
     <div class="settings-body">
       <div class="status-row {% if config.SENDER_EMAIL %}status-ok{% else %}status-warn{% endif %}">
-        <span>Sender Email:</span>
-        <strong>{{ config.SENDER_EMAIL or 'Not configured' }}</strong>
-        <span class="status-dot"></span>
+        <span>Sender Email</span><strong>{{ config.SENDER_EMAIL or 'Not configured' }}</strong><span class="status-dot"></span>
       </div>
       <div class="status-row {% if config.SENDER_APP_PASSWORD %}status-ok{% else %}status-warn{% endif %}">
-        <span>App Password:</span>
-        <strong>{{ '●●●●●●●●' if config.SENDER_APP_PASSWORD else 'Not configured' }}</strong>
-        <span class="status-dot"></span>
+        <span>App Password</span><strong>{{ '●●●●●●●●' if config.SENDER_APP_PASSWORD else 'Not configured' }}</strong><span class="status-dot"></span>
       </div>
       <div class="status-row status-ok">
-        <span>Provider:</span>
-        <strong style="text-transform:capitalize;">{{ config.EMAIL_PROVIDER or 'gmail' }}</strong>
+        <span>Provider</span><strong style="text-transform:capitalize;">{{ config.EMAIL_PROVIDER or 'gmail' }}</strong><span class="status-dot"></span>
       </div>
       <div class="status-row status-ok">
-        <span>Sender Name:</span>
-        <strong>{{ config.SENDER_NAME }}</strong>
+        <span>Sender Name</span><strong>{{ config.SENDER_NAME }}</strong><span class="status-dot"></span>
       </div>
-      <div class="settings-hint">
-        <p>📝 Create a <code>.env</code> file in the project root:</p>
-        <pre class="code-block">SENDER_EMAIL=your@gmail.com
-SENDER_APP_PASSWORD=xxxx xxxx xxxx xxxx
-SENDER_NAME=Your Name
-SECRET_KEY=your-secret-key
-
-# Provider: gmail | outlook | yahoo | custom
-EMAIL_PROVIDER=gmail
-
-# For custom SMTP only:
-SMTP_HOST_CUSTOM=mail.yourdomain.com
-SMTP_PORT_CUSTOM=587</pre>
-        <p>🔑 Gmail app password: <strong>myaccount.google.com/apppasswords</strong></p>
-        <p>📮 Outlook: use your regular password with app password enabled</p>
-      </div>
+      <div class="settings-hint">Edit SENDER_EMAIL, SENDER_APP_PASSWORD, EMAIL_PROVIDER in your <code>.env</code> file.</div>
+    </div>
+    <div class="settings-footer">
+      <form method="POST" action="{{ url_for('test_email') }}" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <select name="test_theme" class="form-input form-select" style="width:auto;font-size:13px;">
+          {% for t in ['sunset','ocean','forest','rose','midnight','gold'] %}
+          <option value="{{ t }}">{{ t }}</option>
+          {% endfor %}
+        </select>
+        <select name="test_layout" class="form-input form-select" style="width:auto;font-size:13px;">
+          {% for l in ['banner','portrait','postcard','minimal'] %}
+          <option value="{{ l }}">{{ l }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-primary" style="font-size:13px;padding:7px 16px;">📨 Send Test Email</button>
+      </form>
     </div>
   </div>
 
-  <!-- AI Configuration -->
+  <!-- AI -->
   <div class="settings-card">
-    <div class="settings-card-header"><span class="settings-icon">✨</span><h2>AI Messages (OpenAI)</h2></div>
+    <div class="settings-card-header"><span class="settings-icon">🤖</span><h2>AI Features (OpenAI)</h2></div>
     <div class="settings-body">
       <div class="status-row {% if config.OPENAI_API_KEY %}status-ok{% else %}status-warn{% endif %}">
-        <span>API Key:</span>
-        <strong>{{ '●●●●●●sk-…' if config.OPENAI_API_KEY else 'Not configured' }}</strong>
-        <span class="status-dot"></span>
+        <span>API Key</span><strong>{{ '●●●●' + config.OPENAI_API_KEY[-4:] if config.OPENAI_API_KEY else 'Not configured' }}</strong><span class="status-dot"></span>
       </div>
-      <div class="settings-hint">
-        <p>🤖 AI messages use GPT-4o-mini to generate unique, personalised birthday messages each year.</p>
-        <p>Add to <code>.env</code>:</p>
-        <pre class="code-block">OPENAI_API_KEY=sk-proj-xxxxxxxxxxxx</pre>
-        <p>Then enable <strong>"✨ AI-generated message"</strong> on any birthday entry.</p>
+      <div class="settings-features">
+        <div class="feature-chip {% if config.OPENAI_API_KEY %}active{% endif %}">✨ AI Messages</div>
+        <div class="feature-chip {% if config.OPENAI_API_KEY %}active{% endif %}">🎁 Gift Suggestions</div>
+        <div class="feature-chip {% if config.OPENAI_API_KEY %}active{% endif %}">🎨 Theme Suggestions</div>
+        <div class="feature-chip {% if config.OPENAI_API_KEY %}active{% endif %}">🎙️ Voice Greetings (TTS)</div>
       </div>
+      <div class="settings-hint">Add <code>OPENAI_API_KEY=sk-...</code> to your .env file to enable AI features.</div>
     </div>
   </div>
 
-  <!-- Test Email -->
+  <!-- SMS / WhatsApp -->
   <div class="settings-card">
-    <div class="settings-card-header"><span class="settings-icon">🧪</span><h2>Send Test Email</h2></div>
+    <div class="settings-card-header"><span class="settings-icon">💬</span><h2>SMS & WhatsApp (Twilio)</h2></div>
     <div class="settings-body">
-      <p style="color:#666;margin-bottom:16px;font-size:14px;">Send a test birthday card to yourself to verify email is working.</p>
-      <form method="POST" action="{{ url_for('test_email') }}">
-        <div class="form-group">
-          <label class="form-label">Test Name</label>
-          <input type="text" name="test_name" class="form-input" value="{{ config.SENDER_NAME }}" placeholder="Test Person">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Theme</label>
-          <select name="test_theme" class="form-input form-select">
-            <option value="sunset">🌅 Sunset</option>
-            <option value="ocean">🌊 Ocean</option>
-            <option value="forest">🌲 Forest</option>
-            <option value="rose">🌹 Rose</option>
-            <option value="midnight">🌙 Midnight</option>
-            <option value="gold">✨ Gold</option>
-          </select>
-        </div>
-        <button type="submit" class="btn btn-primary" {% if not config.SENDER_EMAIL %}disabled{% endif %}>
-          📨 Send Test Email
-        </button>
-        {% if not config.SENDER_EMAIL %}<p class="settings-warn">⚠️ Configure email credentials first</p>{% endif %}
+      <div class="status-row {% if config.twilio_configured() %}status-ok{% else %}status-warn{% endif %}">
+        <span>Account SID</span><strong>{{ '●●●●' + config.TWILIO_ACCOUNT_SID[-4:] if config.TWILIO_ACCOUNT_SID else 'Not configured' }}</strong><span class="status-dot"></span>
+      </div>
+      <div class="status-row {% if config.TWILIO_FROM_NUMBER %}status-ok{% else %}status-warn{% endif %}">
+        <span>From Number</span><strong>{{ config.TWILIO_FROM_NUMBER or 'Not configured' }}</strong><span class="status-dot"></span>
+      </div>
+      <div class="status-row {% if config.TWILIO_WHATSAPP_FROM %}status-ok{% else %}status-warn{% endif %}">
+        <span>WhatsApp From</span><strong>{{ config.TWILIO_WHATSAPP_FROM or 'Not configured' }}</strong><span class="status-dot"></span>
+      </div>
+      <div class="settings-hint">Add Twilio credentials to <code>.env</code>, then enable SMS per-contact in the birthday form.</div>
+    </div>
+  </div>
+
+  <!-- Webhooks -->
+  <div class="settings-card">
+    <div class="settings-card-header"><span class="settings-icon">🔗</span><h2>Webhooks (Discord & Slack)</h2></div>
+    <div class="settings-body">
+      <div class="status-row {% if config.DISCORD_WEBHOOK_URL %}status-ok{% else %}status-warn{% endif %}">
+        <span>Discord</span><strong>{{ 'Configured ✓' if config.DISCORD_WEBHOOK_URL else 'Not configured' }}</strong><span class="status-dot"></span>
+      </div>
+      <div class="status-row {% if config.SLACK_WEBHOOK_URL %}status-ok{% else %}status-warn{% endif %}">
+        <span>Slack</span><strong>{{ 'Configured ✓' if config.SLACK_WEBHOOK_URL else 'Not configured' }}</strong><span class="status-dot"></span>
+      </div>
+      <div class="settings-hint">Add <code>DISCORD_WEBHOOK_URL</code> and/or <code>SLACK_WEBHOOK_URL</code> to your .env for channel alerts when messages are sent.</div>
+    </div>
+  </div>
+
+  <!-- Web Push -->
+  <div class="settings-card">
+    <div class="settings-card-header"><span class="settings-icon">🔔</span><h2>Browser Push Notifications</h2></div>
+    <div class="settings-body">
+      <div class="status-row {% if config.push_configured() %}status-ok{% else %}status-warn{% endif %}">
+        <span>VAPID Keys</span><strong>{{ 'Configured ✓' if config.push_configured() else 'Not configured' }}</strong><span class="status-dot"></span>
+      </div>
+      <div class="status-row status-ok">
+        <span>Active Subscriptions</span><strong>{{ push_count }}</strong><span class="status-dot"></span>
+      </div>
+      {% if config.push_configured() %}
+      <div id="pushStatus" class="settings-hint">Loading push status…</div>
+      <button type="button" class="btn btn-primary" style="margin-top:10px;font-size:13px;padding:7px 16px;" onclick="togglePush()">
+        🔔 Subscribe to Push Notifications
+      </button>
+      {% else %}
+      <div class="settings-hint">Add <code>VAPID_PRIVATE_KEY</code> and <code>VAPID_PUBLIC_KEY</code> to <code>.env</code>.<br>
+      Generate keys: <code>python -c "from notifications import generate_vapid_keys; import json; print(json.dumps(generate_vapid_keys(), indent=2))"</code></div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Login / Auth -->
+  <div class="settings-card">
+    <div class="settings-card-header"><span class="settings-icon">🔐</span><h2>Login Protection</h2></div>
+    <div class="settings-body">
+      <div class="status-row {% if config.LOGIN_REQUIRED %}status-ok{% else %}status-warn{% endif %}">
+        <span>Status</span><strong>{{ 'Enabled ✓' if config.LOGIN_REQUIRED else 'Disabled (public access)' }}</strong><span class="status-dot"></span>
+      </div>
+      <div class="settings-hint">
+        Add <code>LOGIN_REQUIRED=true</code> to your <code>.env</code> to require a password.<br>
+        Set or change the admin password below:
+      </div>
+    </div>
+    <div class="settings-footer">
+      <form method="POST" action="{{ url_for('setup_login') }}" style="display:flex;gap:8px;">
+        <input type="password" name="password" class="form-input" style="font-size:13px;flex:1;" placeholder="New password (min 6 chars)">
+        <button type="submit" class="btn btn-primary" style="font-size:13px;padding:7px 16px;">🔑 Set Password</button>
       </form>
     </div>
   </div>
 
   <!-- Scheduler -->
   <div class="settings-card">
-    <div class="settings-card-header"><span class="settings-icon">⏰</span><h2>Scheduler</h2></div>
+    <div class="settings-card-header"><span class="settings-icon">⏰</span><h2>Scheduler Status</h2></div>
     <div class="settings-body">
       <div class="status-row {% if scheduler_running %}status-ok{% else %}status-warn{% endif %}">
-        <span>Status:</span>
-        <strong>{{ '🟢 Running' if scheduler_running else '🔴 Stopped' }}</strong>
-        <span class="status-dot"></span>
+        <span>Scheduler</span><strong>{{ 'Running ✓' if scheduler_running else 'Stopped' }}</strong><span class="status-dot"></span>
       </div>
-      <div class="status-row status-ok"><span>Birthday emails:</span><strong>Daily at 8:00 AM UTC</strong></div>
-      <div class="status-row status-ok"><span>Reminder emails:</span><strong>Daily at 8:05 AM UTC</strong></div>
-      <p class="settings-hint" style="margin-top:16px;">
-        Keep the app running with <code>python app.py</code> for automation.<br>
-        Reminder days are configured per-person when adding/editing a birthday.
-      </p>
+      <div class="status-row status-ok"><span>Birthday Check</span><strong>Hourly (8 AM in person's timezone)</strong><span class="status-dot"></span></div>
+      <div class="status-row status-ok"><span>Reminder Check</span><strong>Hourly (+5 min offset)</strong><span class="status-dot"></span></div>
+      <div class="status-row status-ok"><span>Monthly Digest</span><strong>1st of month, 7 AM UTC</strong><span class="status-dot"></span></div>
+      <div class="status-row status-ok"><span>Year in Review</span><strong>Dec 31, 8 PM UTC</strong><span class="status-dot"></span></div>
+    </div>
+    <div class="settings-footer">
+      <form method="POST" action="{{ url_for('send_digest_now') }}">
+        <button type="submit" class="btn btn-secondary" style="font-size:13px;padding:7px 16px;">📅 Send This Month's Digest Now</button>
+      </form>
     </div>
   </div>
 
-  <!-- Sent Log -->
-  <div class="settings-card settings-card-full">
-    <div class="settings-card-header"><span class="settings-icon">📜</span><h2>Recent Activity Log</h2></div>
+  <!-- Recent Logs -->
+  <div class="settings-card settings-card-wide">
+    <div class="settings-card-header"><span class="settings-icon">📋</span><h2>Recent Logs</h2></div>
     <div class="settings-body">
       {% if logs %}
-      <table class="log-table">
-        <thead>
-          <tr><th>Type</th><th>Recipient</th><th>Email</th><th>Status</th><th>Sent At</th></tr>
-        </thead>
-        <tbody>
-          {% for log, name in logs %}
-          <tr>
-            <td>{{ '🎂' if log.log_type == 'birthday' else '⏰' }} {{ log.log_type|capitalize }}</td>
-            <td>{{ name }}</td>
-            <td>{{ log.recipient_email }}</td>
-            <td>
-              <span class="badge {% if log.status == 'success' %}badge-success{% else %}badge-error{% endif %}">
-                {{ '✅ Success' if log.status == 'success' else '❌ Failed' }}
-              </span>
-            </td>
-            <td>{{ log.sent_at.strftime('%b %d, %Y %H:%M') }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {% else %}
-      <div class="empty-state" style="padding:30px 0;">
-        <div class="empty-icon">📭</div>
-        <p>No messages sent yet.</p>
+      <div class="log-table-wrap">
+        <table class="log-table">
+          <thead><tr>
+            <th>Name</th><th>Type</th><th>Status</th><th>Details</th><th>Time</th>
+          </tr></thead>
+          <tbody>
+            {% for log, name in logs %}
+            <tr>
+              <td><strong>{{ name }}</strong></td>
+              <td><span class="log-type log-type-{{ log.log_type }}">{{ log.log_type }}</span></td>
+              <td><span class="log-status log-{{ log.status }}">{{ log.status }}</span></td>
+              <td class="log-notes">{{ log.notes[:60] if log.notes else '—' }}</td>
+              <td>{{ log.sent_at.strftime('%b %d %H:%M') }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
+      {% else %}
+      <p class="empty-state" style="padding:20px;">No logs yet. Send a birthday message to see records here.</p>
       {% endif %}
     </div>
   </div>
 
 </div>
+{% endblock %}
+
+{% block scripts %}
+{% if config.push_configured() %}
+<script>
+const SW_URL = '/sw.js';
+let pushSubscription = null;
+
+async function togglePush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    alert('Push notifications are not supported in this browser.');
+    return;
+  }
+  const reg = await navigator.serviceWorker.ready;
+  const existing = await reg.pushManager.getSubscription();
+  if (existing) {
+    await existing.unsubscribe();
+    await fetch('/push/unsubscribe', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({endpoint: existing.endpoint})});
+    document.getElementById('pushStatus').textContent = '🔕 Push notifications disabled.';
+    document.querySelector('button[onclick="togglePush()"]').textContent = '🔔 Subscribe to Push Notifications';
+    return;
+  }
+  const resp = await fetch('/push/public-key');
+  const {public_key} = await resp.json();
+  if (!public_key) { alert('VAPID public key not found.'); return; }
+  const sub = await reg.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array(public_key)
+  });
+  await fetch('/push/subscribe', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(sub.toJSON())});
+  document.getElementById('pushStatus').textContent = '🔔 Push notifications enabled for this browser!';
+  document.querySelector('button[onclick="togglePush()"]').textContent = '🔕 Unsubscribe';
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = window.atob(base64);
+  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+}
+
+navigator.serviceWorker.ready.then(async reg => {
+  const sub = await reg.pushManager.getSubscription();
+  const status = document.getElementById('pushStatus');
+  if (sub) {
+    status.textContent = '🔔 Push notifications are active on this browser.';
+    document.querySelector('button[onclick="togglePush()"]').textContent = '🔕 Unsubscribe';
+  } else {
+    status.textContent = '🔕 Push notifications are not enabled.';
+  }
+});
+</script>
+{% endif %}
 {% endblock %}

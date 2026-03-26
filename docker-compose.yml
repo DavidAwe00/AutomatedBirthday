@@ -1,0 +1,18 @@
+version: "3.9"
+
+services:
+  birthday-bot:
+    build: .
+    ports:
+      - "5050:5050"
+    volumes:
+      - ./instance:/app/instance          # persists SQLite database
+      - ./static/cards:/app/static/cards  # persists generated cards
+    env_file:
+      - .env
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5050/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

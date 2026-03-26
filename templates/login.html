@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login — Birthday Bot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Inter',sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+    .card{background:#fff;border-radius:20px;padding:44px 40px;width:100%;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,0.2)}
+    .logo{text-align:center;margin-bottom:28px}
+    .logo-icon{font-size:48px;margin-bottom:8px}
+    .logo h1{font-size:24px;font-weight:800;color:#1a1d2e}
+    .logo h1 span{color:#7c3aed}
+    .logo p{font-size:13px;color:#888;margin-top:4px}
+    .flash{padding:10px 14px;border-radius:8px;font-size:13px;font-weight:500;margin-bottom:16px}
+    .flash-error{background:#fef2f2;color:#991b1b;border:1px solid #fca5a5}
+    .flash-success{background:#ecfdf5;color:#065f46;border:1px solid #a7f3d0}
+    .flash-info{background:#eff6ff;color:#1e40af;border:1px solid #bfdbfe}
+    label{display:block;font-size:13px;font-weight:600;color:#333;margin-bottom:5px}
+    input[type=password]{width:100%;padding:10px 14px;border:1.5px solid #e2e5f0;border-radius:8px;font-size:14px;outline:none;transition:border-color .15s;font-family:inherit}
+    input[type=password]:focus{border-color:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,.1)}
+    .btn{width:100%;padding:11px;background:#7c3aed;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;margin-top:18px;transition:background .15s}
+    .btn:hover{background:#5b21b6}
+    .divider{text-align:center;color:#aaa;font-size:12px;margin:16px 0;position:relative}
+    .divider::before,.divider::after{content:'';position:absolute;top:50%;width:42%;height:1px;background:#e2e5f0}
+    .divider::before{left:0}.divider::after{right:0}
+    .setup-note{font-size:12px;color:#888;text-align:center;margin-top:14px;line-height:1.6}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <div class="logo-icon">🎂</div>
+      <h1>Birthday<span>Bot</span></h1>
+      <p>{{ 'Create your admin password to get started' if needs_setup else 'Sign in to your account' }}</p>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+        <div class="flash flash-{{ cat }}">{{ msg }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    {% if needs_setup %}
+    <form method="POST">
+      <input type="hidden" name="setup" value="1">
+      <label for="password">Create Admin Password</label>
+      <input type="password" id="password" name="password" placeholder="Minimum 6 characters" autocomplete="new-password">
+      <button type="submit" class="btn">🔐 Create Account</button>
+      <p class="setup-note">This password protects your Birthday Bot instance.<br>Store it safely — it can be reset via <code>APP_PASSWORD</code> in .env</p>
+    </form>
+    {% else %}
+    <form method="POST">
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" placeholder="Enter your password" autocomplete="current-password">
+      <button type="submit" class="btn">🔓 Sign In</button>
+    </form>
+    {% endif %}
+  </div>
+</body>
+</html>
