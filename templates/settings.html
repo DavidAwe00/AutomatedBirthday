@@ -63,6 +63,34 @@
     </div>
   </div>
 
+  <!-- E-Gift Cards -->
+  <div class="settings-card">
+    <div class="settings-card-header"><span class="settings-icon">🎁</span><h2>E-Gift Cards</h2></div>
+    <div class="settings-body">
+      <div class="status-row status-ok">
+        <span>Manual Code</span><strong>Always available — embed any code</strong><span class="status-dot"></span>
+      </div>
+      <div class="status-row {% if config.tremendous_configured() %}status-ok{% else %}status-warn{% endif %}">
+        <span>Tremendous API</span><strong>{{ 'Configured ✓' if config.tremendous_configured() else 'Not configured' }}</strong><span class="status-dot"></span>
+      </div>
+      <div class="status-row {% if config.TREMENDOUS_SANDBOX %}status-warn{% else %}status-ok{% endif %}">
+        <span>Mode</span><strong>{{ '⚠️ Sandbox (test)' if config.TREMENDOUS_SANDBOX else '✅ Production (live)' }}</strong><span class="status-dot"></span>
+      </div>
+      <div class="settings-hint">
+        <strong>Auto-send setup:</strong><br>
+        1. Sign up at <a href="https://tremendous.com" target="_blank">tremendous.com</a><br>
+        2. Add to <code>.env</code>:<br>
+        <div class="code-block">TREMENDOUS_API_KEY=test_...
+TREMENDOUS_FUNDING_SOURCE_ID=...
+TREMENDOUS_SANDBOX=false  # set true for testing</div>
+        <strong>Supported brands:</strong> Amazon, Visa Prepaid, Starbucks, Netflix, Apple, Google Play, Airbnb, Spotify, Uber + custom codes.
+      </div>
+    </div>
+    <div class="settings-footer">
+      <a href="{{ url_for('gift_cards') }}" class="btn btn-secondary" style="font-size:13px;padding:7px 16px;">📊 View Gift Card History</a>
+    </div>
+  </div>
+
   <!-- SMS / WhatsApp -->
   <div class="settings-card">
     <div class="settings-card-header"><span class="settings-icon">💬</span><h2>SMS & WhatsApp (Twilio)</h2></div>

@@ -203,7 +203,7 @@ def _smtp_connection():
 
 # ── HTML builders ─────────────────────────────────────────────────────────────
 
-def _build_celebrant_html(name, message, age, theme):
+def _build_celebrant_html(name, message, age, theme, gift_card_html=""):
     c1, c2 = THEME_COLORS.get(theme, ("#FF5E3A", "#FFB347"))
     paragraphs = "".join(f"<p style='margin:8px 0;line-height:1.7;'>{p}</p>"
                          for p in message.split("\n\n"))
@@ -221,8 +221,9 @@ def _build_celebrant_html(name, message, age, theme):
         <tr><td style="background:#fff;padding:30px 40px;">
           <div style="font-size:16px;color:#333;line-height:1.7;">{paragraphs}</div>
           <div style="margin-top:24px;padding:16px 20px;background:linear-gradient(135deg,{c1}18,{c2}18);border-left:4px solid {c1};border-radius:8px;">
-            <p style="margin:0;font-size:14px;color:#555;">🎁 Your special day is here — make it absolutely unforgettable!</p>
+            <p style="margin:0;font-size:14px;color:#555;">✨ Your special day is here — make it absolutely unforgettable!</p>
           </div>
+          {gift_card_html}
         </td></tr>
         <tr><td style="background:linear-gradient(135deg,{c1},{c2});padding:20px 30px;text-align:center;">
           <p style="margin:0;color:rgba(255,255,255,0.85);font-size:13px;">Sent with ❤️ via Birthday Bot &nbsp;•&nbsp; {date.today().strftime('%B %d, %Y')}</p>
@@ -410,6 +411,37 @@ def _build_year_review_html(year: int, birthdays: list, sent_count: int, reminde
 
 # ── Public send functions ─────────────────────────────────────────────────────
 
+def _handle_gift_card(birthday) -> tuple[str, dict]:
+    """
+    Returns (gift_card_html_block, gc_result_dict).
+    Sends via Tremendous if configured; otherwise returns manual code block.
+    """
+    from gift_card_service import build_gift_card_email_html, send_tremendous_gift_card
+
+    if not getattr(birthday, "gift_card_enabled", False):
+        return "", {}
+
+    brand = getattr(birthday, "gift_card_brand", "amazon") or "amazon"
+    amount = float(getattr(birthday, "gift_card_amount", 0) or 0)
+    code = getattr(birthday, "gift_card_code", "") or ""
+    note = getattr(birthday, "gift_card_note", "") or ""
+    gc_type = getattr(birthday, "gift_card_type", "manual") or "manual"
+
+    gc_result = {"delivery_type": gc_type, "brand": brand, "amount": amount}
+
+    if gc_type == "tremendous":
+        result = send_tremendous_gift_card(birthday.name, birthday.email, amount, brand)
+        gc_result.update(result)
+        # Tremendous sends its own email; we just add a notice in ours
+        html_block = build_gift_card_email_html(brand, amount, "", note, "tremendous")
+    else:
+        # Manual: embed the code directly in the email
+        html_block = build_gift_card_email_html(brand, amount, code, note, "manual")
+        gc_result["success"] = True
+
+    return html_block, gc_result
+
+
 def send_birthday_emails(birthday) -> dict:
     if not Config.SENDER_EMAIL or not Config.SENDER_APP_PASSWORD:
         return {"success": False, "error": "Email credentials not configured."}
@@ -422,6 +454,8 @@ def send_birthday_emails(birthday) -> dict:
         notes=getattr(birthday, "notes", ""),
         birthday_obj=birthday if hasattr(birthday, "past_messages") else None,
     )
+
+    gift_card_html, gc_result = _handle_gift_card(birthday)
 
     card_bytes = generate_gift_card(
         name=birthday.name,
@@ -452,7 +486,7 @@ def send_birthday_emails(birthday) -> dict:
         msg["To"] = birthday.email
         alt = MIMEMultipart("alternative")
         alt.attach(MIMEText(f"Happy Birthday, {birthday.name}!\n\n{message_text}", "plain"))
-        alt.attach(MIMEText(_build_celebrant_html(birthday.name, message_text, birthday.age_turning, birthday.card_theme), "html"))
+        alt.attach(MIMEText(_build_celebrant_html(birthday.name, message_text, birthday.age_turning, birthday.card_theme, gift_card_html), "html"))
         msg.attach(alt)
         img = MIMEImage(card_bytes, "jpeg")
         img.add_header("Content-ID", "<giftcard>")
@@ -490,7 +524,31 @@ def send_birthday_emails(birthday) -> dict:
     except Exception as e:
         errors.append(f"Owner notification failed: {e}")
 
-    return {"success": not errors, "error": "; ".join(errors) if errors else ""}
+    success = not errors
+
+    # Log gift card delivery
+    if success and gc_result:
+        try:
+            from models import GiftCardSend
+            from extensions import db
+            gcs = GiftCardSend(
+                birthday_id=birthday.id,
+                brand=gc_result.get("brand", ""),
+                amount=gc_result.get("amount", 0),
+                delivery_type=gc_result.get("delivery_type", "manual"),
+                code=getattr(birthday, "gift_card_code", "") or "",
+                tremendous_order_id=gc_result.get("order_id", ""),
+                status="sent" if gc_result.get("success") else "failed",
+                recipient_email=birthday.email,
+                notes=gc_result.get("error", ""),
+            )
+            db.session.add(gcs)
+            db.session.commit()
+        except Exception:
+            pass
+
+    return {"success": success, "error": "; ".join(errors) if errors else "",
+            "gift_card": gc_result}
 
 
 def send_reminder_email(birthday, days_before: int) -> dict:

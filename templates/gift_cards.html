@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}E-Gift Cards — Birthday Bot{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">🎁 E-Gift Card History</h1>
+    <p class="page-subtitle">Track all digital gift cards sent through Birthday Bot</p>
+  </div>
+  <div class="header-actions">
+    <a href="{{ url_for('settings') }}" class="btn btn-secondary">⚙️ Configure</a>
+  </div>
+</div>
+
+<!-- Summary stats -->
+<div class="stats-grid" style="margin-bottom:24px;">
+  <div class="stat-card">
+    <div class="stat-icon">📦</div>
+    <div class="stat-value">{{ sends | length }}</div>
+    <div class="stat-label">Total Sent</div>
+  </div>
+  <div class="stat-card stat-today">
+    <div class="stat-icon">💵</div>
+    <div class="stat-value">${{ "%.2f" | format(total_value) }}</div>
+    <div class="stat-label">Total Value Gifted</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">⚡</div>
+    <div class="stat-value">{{ sends | selectattr('0.delivery_type', 'equalto', 'tremendous') | list | length }}</div>
+    <div class="stat-label">Auto (Tremendous)</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon">📋</div>
+    <div class="stat-value">{{ sends | selectattr('0.delivery_type', 'equalto', 'manual') | list | length }}</div>
+    <div class="stat-label">Manual Codes</div>
+  </div>
+</div>
+
+{% if sends %}
+<div class="gc-history-list">
+  {% for send, person_name in sends %}
+  {% set info = brands.get(send.brand, brands.get('custom', {})) %}
+  <div class="gc-history-item">
+    <!-- Brand card preview strip -->
+    <div class="gc-hist-strip" style="background:linear-gradient(135deg,{{ info.get('color1','#7c3aed') }},{{ info.get('color2','#4f46e5') }})">
+      <span class="gc-hist-brand-icon">{{ info.get('icon','🎁') }}</span>
+    </div>
+    <div class="gc-hist-body">
+      <div class="gc-hist-top">
+        <div>
+          <span class="gc-hist-brand">{{ info.get('label', send.brand | title) }}</span>
+          <span class="gc-hist-person">→ {{ person_name }}</span>
+        </div>
+        <div class="gc-hist-right">
+          {% if send.amount %}
+          <span class="gc-hist-amount">${{ "%.2f" | format(send.amount) }}</span>
+          {% endif %}
+          <span class="gc-status-badge gc-status-{{ send.status }}">{{ send.status }}</span>
+        </div>
+      </div>
+      <div class="gc-hist-meta">
+        <span>{{ '⚡ Tremendous' if send.delivery_type == 'tremendous' else '📋 Manual code' }}</span>
+        {% if send.code and send.delivery_type == 'manual' %}
+        <span>•</span><span class="gc-hist-code">{{ send.code[:8] }}…</span>
+        {% endif %}
+        {% if send.tremendous_order_id %}
+        <span>•</span><span style="font-size:11px;color:#888;">Order: {{ send.tremendous_order_id[:16] }}…</span>
+        {% endif %}
+        <span>•</span><span>{{ send.sent_at.strftime('%b %d, %Y %H:%M') }}</span>
+      </div>
+      {% if send.notes %}
+      <div class="gc-hist-error">⚠️ {{ send.notes[:120] }}</div>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-icon">🎁</div>
+  <h3>No gift cards sent yet</h3>
+  <p>Enable the gift card option on any birthday to start gifting!</p>
+  <a href="{{ url_for('add_birthday') }}" class="btn btn-primary">➕ Add a Birthday</a>
+</div>
+{% endif %}
+{% endblock %}

@@ -44,6 +44,11 @@ class Config:
     VAPID_PUBLIC_KEY = os.environ.get("VAPID_PUBLIC_KEY", "")
     VAPID_CLAIMS_EMAIL = os.environ.get("VAPID_CLAIMS_EMAIL", "")
 
+    # ── Tremendous (e-gift cards) ─────────────────────────────────────────
+    TREMENDOUS_API_KEY = os.environ.get("TREMENDOUS_API_KEY", "")
+    TREMENDOUS_FUNDING_SOURCE_ID = os.environ.get("TREMENDOUS_FUNDING_SOURCE_ID", "")
+    TREMENDOUS_SANDBOX = os.environ.get("TREMENDOUS_SANDBOX", "true").lower() == "true"
+
     # ── Auth ─────────────────────────────────────────────────────────────
     # Set APP_PASSWORD in .env to enable login protection
     APP_PASSWORD = os.environ.get("APP_PASSWORD", "")
@@ -64,6 +69,10 @@ class Config:
     @classmethod
     def twilio_configured(cls):
         return bool(cls.TWILIO_ACCOUNT_SID and cls.TWILIO_AUTH_TOKEN and cls.TWILIO_FROM_NUMBER)
+
+    @classmethod
+    def tremendous_configured(cls):
+        return bool(cls.TREMENDOUS_API_KEY and cls.TREMENDOUS_FUNDING_SOURCE_ID)
 
     @classmethod
     def push_configured(cls):

@@ -5,6 +5,9 @@
 <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
 {% endblock %}
 
+{% block extra_context %}
+{% endblock %}
+
 {% block content %}
 <div class="page-header">
   <div>
@@ -184,6 +187,107 @@
       <input type="hidden" name="custom_message" id="custom_message_hidden" value="{{ birthday.custom_message if birthday else '' }}">
     </div>
 
+    <!-- E-Gift Card -->
+    <div class="form-section-divider">
+      <span>🎁 E-Gift Card <span class="label-hint">(optional)</span></span>
+    </div>
+
+    <div class="gift-card-toggle-row">
+      <label class="toggle-label">
+        <input type="checkbox" name="gift_card_enabled" id="gift_card_enabled" class="toggle-input"
+               {{ 'checked' if birthday and birthday.gift_card_enabled }}>
+        <span class="toggle-track"></span>
+        <span class="toggle-text">
+          🎁 <strong>Include an E-Gift Card</strong>
+          <span class="label-hint"> — attach a digital gift card to the birthday email</span>
+        </span>
+      </label>
+    </div>
+
+    <div id="giftCardOptions" style="{{ '' if birthday and birthday.gift_card_enabled else 'display:none;' }}" class="gift-card-options">
+
+      <!-- Delivery type -->
+      <div class="form-group">
+        <label class="form-label">Delivery Method</label>
+        <div class="gc-type-picker">
+          <label class="gc-type-option">
+            <input type="radio" name="gift_card_type" value="manual" id="gcManual"
+                   {{ 'checked' if not birthday or birthday.gift_card_type != 'tremendous' else '' }}>
+            <div class="gc-type-card">
+              <span class="gc-type-icon">📋</span>
+              <span class="gc-type-name">Manual Code</span>
+              <span class="gc-type-desc">Embed a code you've already purchased</span>
+            </div>
+          </label>
+          <label class="gc-type-option">
+            <input type="radio" name="gift_card_type" value="tremendous" id="gcTremendous"
+                   {{ 'checked' if birthday and birthday.gift_card_type == 'tremendous' else '' }}>
+            <div class="gc-type-card">
+              <span class="gc-type-icon">⚡</span>
+              <span class="gc-type-name">Auto-Send</span>
+              <span class="gc-type-desc">Purchase & deliver automatically via Tremendous</span>
+              {% if not config.tremendous_configured() %}<span class="gc-type-warn">Requires API key</span>{% endif %}
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Brand selector -->
+      <div class="form-group">
+        <label class="form-label">Gift Card Brand</label>
+        <div class="gc-brand-picker" id="gcBrandPicker">
+          {% for key, label, icon in gift_card_brands %}
+          <label class="gc-brand-option">
+            <input type="radio" name="gift_card_brand" value="{{ key }}"
+                   {{ 'checked' if (birthday and birthday.gift_card_brand == key) or (not birthday and key == 'amazon') }}>
+            <div class="gc-brand-card">
+              <span class="gc-brand-icon">{{ icon }}</span>
+              <span class="gc-brand-name">{{ label }}</span>
+            </div>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Amount + code row -->
+      <div class="form-grid" style="grid-template-columns:1fr 2fr;">
+        <div class="form-group">
+          <label class="form-label" for="gift_card_amount">Amount (USD)</label>
+          <div style="position:relative;">
+            <span style="position:absolute;left:11px;top:50%;transform:translateY(-50%);color:#888;font-weight:600;">$</span>
+            <input type="number" id="gift_card_amount" name="gift_card_amount" class="form-input"
+                   style="padding-left:26px;" min="1" max="500" step="1" placeholder="25"
+                   value="{{ birthday.gift_card_amount if birthday and birthday.gift_card_amount else '' }}">
+          </div>
+        </div>
+        <div class="form-group" id="gcCodeRow" style="{{ 'display:none;' if birthday and birthday.gift_card_type == 'tremendous' else '' }}">
+          <label class="form-label" for="gift_card_code">Gift Card Code</label>
+          <input type="text" id="gift_card_code" name="gift_card_code" class="form-input"
+                 placeholder="e.g. ABCD-1234-EFGH-5678"
+                 value="{{ birthday.gift_card_code if birthday and birthday.gift_card_code else '' }}"
+                 style="font-family:'Courier New',monospace;letter-spacing:1px;">
+        </div>
+      </div>
+
+      <!-- Personal note -->
+      <div class="form-group">
+        <label class="form-label" for="gift_card_note">Personal Note with Card <span class="label-hint">(optional)</span></label>
+        <input type="text" id="gift_card_note" name="gift_card_note" class="form-input"
+               placeholder="e.g. Grab something you love! 🛒"
+               value="{{ birthday.gift_card_note if birthday and birthday.gift_card_note else '' }}">
+      </div>
+
+      <!-- Live gift card preview -->
+      <div class="gc-preview-wrap" id="gcPreview">
+        <div class="gc-preview-label">Card preview</div>
+        <div class="gc-preview-card" id="gcPreviewCard">
+          <!-- Updated by JS -->
+        </div>
+      </div>
+
+    </div>
+    <!-- /gift card options -->
+
     <!-- Live preview -->
     <div class="preview-section" id="previewSection">
       <div class="section-header" style="margin-bottom:12px;">
@@ -271,6 +375,63 @@ function suggestTheme() {
       if (radio) { radio.checked = true; updatePreview(); }
     });
 }
+
+// ── Gift Card ─────────────────────────────────────────────────────────────────
+const GC_BRANDS = {{ gift_card_brands_js | safe }};
+
+document.getElementById('gift_card_enabled').addEventListener('change', function() {
+  document.getElementById('giftCardOptions').style.display = this.checked ? '' : 'none';
+  if (this.checked) updateGcPreview();
+});
+
+document.querySelectorAll('input[name="gift_card_type"]').forEach(r => r.addEventListener('change', function() {
+  document.getElementById('gcCodeRow').style.display = (this.value === 'tremendous') ? 'none' : '';
+  updateGcPreview();
+}));
+
+['gift_card_brand', 'gift_card_amount', 'gift_card_code', 'gift_card_note'].forEach(id => {
+  const el = document.getElementById(id) || document.querySelectorAll(`input[name="${id}"]`);
+  if (el && el.tagName) el.addEventListener('input', updateGcPreview);
+});
+document.querySelectorAll('input[name="gift_card_brand"]').forEach(r => r.addEventListener('change', updateGcPreview));
+
+const BRAND_COLORS = {};
+GC_BRANDS.forEach(([key, label, icon, c1, c2]) => { BRAND_COLORS[key] = {label, icon, c1, c2}; });
+
+function updateGcPreview() {
+  const brand = document.querySelector('input[name="gift_card_brand"]:checked')?.value || 'amazon';
+  const amount = document.getElementById('gift_card_amount')?.value || '';
+  const code = document.getElementById('gift_card_code')?.value || '';
+  const note = document.getElementById('gift_card_note')?.value || '';
+  const gcType = document.querySelector('input[name="gift_card_type"]:checked')?.value || 'manual';
+  const info = BRAND_COLORS[brand] || {label:'Gift', icon:'🎁', c1:'#7c3aed', c2:'#4f46e5'};
+
+  const codeHtml = gcType === 'tremendous'
+    ? `<div class="gc-prev-code tremendous">⚡ Tremendous will deliver a separate email with the redemption link</div>`
+    : code ? `<div class="gc-prev-code"><span>Code:</span> <code>${code}</code></div>` : '';
+
+  const noteHtml = note ? `<p class="gc-prev-note">"${note}"</p>` : '';
+  const amountHtml = amount ? `<div class="gc-prev-amount">$${parseFloat(amount).toFixed(2)}</div>` : '';
+
+  document.getElementById('gcPreviewCard').innerHTML = `
+    <div class="gc-prev-card" style="background:linear-gradient(135deg,${info.c1},${info.c2})">
+      <div class="gc-prev-top">
+        <div>
+          <div class="gc-prev-label-sm">E-Gift Card</div>
+          <div class="gc-prev-brand">${info.icon} ${info.label}</div>
+        </div>
+        ${amountHtml}
+      </div>
+      <div class="gc-prev-bottom">
+        <div class="gc-prev-tagline">🎁 A special gift, delivered with love</div>
+        ${noteHtml}
+        ${codeHtml}
+      </div>
+    </div>`;
+}
+
+// init preview if already enabled
+if (document.getElementById('gift_card_enabled')?.checked) updateGcPreview();
 
 // ── AI: generate message ──────────────────────────────────────────────────────
 function generateAIMessage() {

@@ -36,8 +36,17 @@ class Birthday(db.Model):
     last_sent = db.Column(db.Date, nullable=True)
     deleted_at = db.Column(db.DateTime, nullable=True)
 
+    # ── Gift card settings ─────────────────────────────────────────────────
+    gift_card_enabled = db.Column(db.Boolean, default=False)
+    gift_card_type = db.Column(db.String(20), default="manual")  # "manual" | "tremendous"
+    gift_card_brand = db.Column(db.String(40), default="amazon") # amazon|visa|starbucks|etc.
+    gift_card_amount = db.Column(db.Float, default=0.0)
+    gift_card_code = db.Column(db.String(120), default="")       # manual code
+    gift_card_note = db.Column(db.Text, default="")              # personal note with card
+
     logs = db.relationship("SentLog", backref="birthday", lazy=True, cascade="all, delete-orphan")
     past_messages = db.relationship("PastMessage", backref="birthday", lazy=True, cascade="all, delete-orphan")
+    gift_card_sends = db.relationship("GiftCardSend", backref="birthday", lazy=True, cascade="all, delete-orphan")
 
     @property
     def is_deleted(self):
@@ -120,6 +129,23 @@ class PastMessage(db.Model):
     message_hash = db.Column(db.String(64), nullable=False)
     message_text = db.Column(db.Text, default="")
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class GiftCardSend(db.Model):
+    """Tracks each e-gift card delivery (Tremendous order or manual)."""
+    __tablename__ = "gift_card_sends"
+
+    id = db.Column(db.Integer, primary_key=True)
+    birthday_id = db.Column(db.Integer, db.ForeignKey("birthdays.id"))
+    sent_at = db.Column(db.DateTime, default=datetime.utcnow)
+    brand = db.Column(db.String(40), default="amazon")
+    amount = db.Column(db.Float, default=0.0)
+    delivery_type = db.Column(db.String(20), default="manual")    # manual | tremendous
+    code = db.Column(db.String(120), default="")                  # manual code (or masked)
+    tremendous_order_id = db.Column(db.String(120), default="")
+    status = db.Column(db.String(30), default="sent")             # sent | pending | failed
+    recipient_email = db.Column(db.String(200), default="")
+    notes = db.Column(db.Text, default="")
 
 
 class PushSubscription(db.Model):

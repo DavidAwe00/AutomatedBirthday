@@ -16,6 +16,7 @@ from extensions import db
 import models  # noqa: F401
 from auth import init_auth, create_admin, verify_password, admin_exists
 from scheduler import start_scheduler
+from gift_card_service import BRAND_LIST, BRANDS
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -175,13 +176,21 @@ def add_birthday():
             remind_days=request.form.get("remind_days", "3,7").strip() or "3,7",
             send_days_early=int(request.form.get("send_days_early", 0) or 0),
             use_ai_message=request.form.get("use_ai_message") == "on",
+            gift_card_enabled=request.form.get("gift_card_enabled") == "on",
+            gift_card_type=request.form.get("gift_card_type", "manual"),
+            gift_card_brand=request.form.get("gift_card_brand", "amazon"),
+            gift_card_amount=float(request.form.get("gift_card_amount") or 0),
+            gift_card_code=request.form.get("gift_card_code", "").strip(),
+            gift_card_note=request.form.get("gift_card_note", "").strip(),
         )
         db.session.add(bday)
         db.session.commit()
         flash(f"🎂 {name}'s birthday added successfully!", "success")
         return redirect(url_for("index"))
 
-    return render_template("birthday_form.html", birthday=None, timezones=TIMEZONES, config=Config)
+    brands_js = json.dumps([[k, v["label"], v["icon"], v["color1"], v["color2"]] for k, v in BRANDS.items()])
+    return render_template("birthday_form.html", birthday=None, timezones=TIMEZONES, config=Config,
+                           gift_card_brands=BRAND_LIST, gift_card_brands_js=brands_js)
 
 
 @app.route("/edit/<int:id>", methods=["GET", "POST"])
@@ -205,10 +214,18 @@ def edit_birthday(id):
         bday.remind_days = request.form.get("remind_days", "3,7").strip() or "3,7"
         bday.send_days_early = int(request.form.get("send_days_early", 0) or 0)
         bday.use_ai_message = request.form.get("use_ai_message") == "on"
+        bday.gift_card_enabled = request.form.get("gift_card_enabled") == "on"
+        bday.gift_card_type = request.form.get("gift_card_type", "manual")
+        bday.gift_card_brand = request.form.get("gift_card_brand", "amazon")
+        bday.gift_card_amount = float(request.form.get("gift_card_amount") or 0)
+        bday.gift_card_code = request.form.get("gift_card_code", "").strip()
+        bday.gift_card_note = request.form.get("gift_card_note", "").strip()
         db.session.commit()
         flash(f"✅ {bday.name}'s birthday updated!", "success")
         return redirect(url_for("index"))
-    return render_template("birthday_form.html", birthday=bday, timezones=TIMEZONES, config=Config)
+    brands_js = json.dumps([[k, v["label"], v["icon"], v["color1"], v["color2"]] for k, v in BRANDS.items()])
+    return render_template("birthday_form.html", birthday=bday, timezones=TIMEZONES, config=Config,
+                           gift_card_brands=BRAND_LIST, gift_card_brands_js=brands_js)
 
 
 # ── Soft Delete / Trash ───────────────────────────────────────────────────────
@@ -533,6 +550,21 @@ def settings():
         scheduler_running=scheduler.running,
         push_count=push_count,
     )
+
+
+@app.route("/gift-cards")
+@auth_required
+def gift_cards():
+    from models import GiftCardSend, Birthday
+    sends = (
+        db.session.query(GiftCardSend, Birthday.name)
+        .join(Birthday, GiftCardSend.birthday_id == Birthday.id)
+        .order_by(GiftCardSend.sent_at.desc())
+        .limit(100).all()
+    )
+    from gift_card_service import BRANDS
+    total_value = sum(s.amount for s, _ in sends if s.status == "sent")
+    return render_template("gift_cards.html", sends=sends, brands=BRANDS, total_value=total_value)
 
 
 @app.route("/settings/test-email", methods=["POST"])

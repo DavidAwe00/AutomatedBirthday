@@ -302,6 +302,68 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; back
 .cal-dot.theme-midnight { background: #462882; }
 .cal-dot.theme-gold { background: #DCAA1E; }
 
+/* ===== FORM SECTION DIVIDER ===== */
+.form-section-divider { display: flex; align-items: center; gap: 12px; margin: 24px 0 16px; font-size: 14px; font-weight: 700; color: var(--text); }
+.form-section-divider::before, .form-section-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+/* ===== GIFT CARD TOGGLE ROW ===== */
+.gift-card-toggle-row { padding: 14px 16px; background: linear-gradient(135deg,#f0fdf4,#ecfdf5); border-radius: var(--radius-sm); border: 1px solid #a7f3d0; margin-bottom: 16px; }
+.gift-card-options { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 18px; }
+
+/* ===== GIFT CARD TYPE PICKER ===== */
+.gc-type-picker { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.gc-type-option input[type="radio"] { display: none; }
+.gc-type-card { border: 2px solid var(--border); border-radius: var(--radius-sm); padding: 14px 12px; text-align: center; cursor: pointer; transition: all 0.15s; background: var(--surface); display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.gc-type-option input:checked + .gc-type-card { border-color: var(--primary); background: var(--primary-light); }
+.gc-type-card:hover { border-color: var(--primary); }
+.gc-type-icon { font-size: 24px; }
+.gc-type-name { font-size: 13px; font-weight: 700; color: var(--text); }
+.gc-type-desc { font-size: 11px; color: var(--text-2); line-height: 1.4; }
+.gc-type-warn { font-size: 10px; color: var(--warning); font-weight: 600; margin-top: 2px; }
+
+/* ===== GIFT CARD BRAND PICKER ===== */
+.gc-brand-picker { display: flex; flex-wrap: wrap; gap: 8px; }
+.gc-brand-option input[type="radio"] { display: none; }
+.gc-brand-card { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 10px 14px; border-radius: var(--radius-sm); border: 2px solid var(--border); cursor: pointer; background: var(--surface); transition: all 0.15s; min-width: 72px; }
+.gc-brand-option input:checked + .gc-brand-card { border-color: var(--primary); background: var(--primary-light); box-shadow: 0 0 0 3px rgba(124,58,237,0.12); }
+.gc-brand-card:hover { border-color: var(--primary); }
+.gc-brand-icon { font-size: 22px; }
+.gc-brand-name { font-size: 10px; font-weight: 700; color: var(--text); text-align: center; line-height: 1.3; }
+
+/* ===== GIFT CARD LIVE PREVIEW ===== */
+.gc-preview-wrap { margin-top: 18px; }
+.gc-preview-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-2); margin-bottom: 8px; }
+.gc-prev-card { border-radius: 14px; overflow: hidden; box-shadow: 0 8px 32px rgba(0,0,0,0.18); max-width: 420px; }
+.gc-prev-top { display: flex; justify-content: space-between; align-items: flex-start; padding: 20px 20px 16px; }
+.gc-prev-label-sm { font-size: 10px; color: rgba(255,255,255,0.7); text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600; margin-bottom: 4px; }
+.gc-prev-brand { font-size: 22px; font-weight: 900; color: white; }
+.gc-prev-amount { font-size: 32px; font-weight: 900; color: white; text-align: right; }
+.gc-prev-bottom { background: white; padding: 14px 20px 16px; }
+.gc-prev-tagline { font-size: 12px; color: #888; }
+.gc-prev-note { font-size: 13px; color: #555; margin-top: 6px; font-style: italic; }
+.gc-prev-code { font-size: 13px; color: #333; margin-top: 10px; padding: 8px 12px; background: #1a1d2e; border-radius: 6px; color: #a5f3fc; font-family: 'Courier New', monospace; letter-spacing: 1px; }
+.gc-prev-code.tremendous { background: #eff6ff; color: #1e40af; font-family: inherit; letter-spacing: normal; border: 1px solid #bfdbfe; font-size: 12px; }
+.gc-prev-code code { font-family: 'Courier New', monospace; letter-spacing: 2px; font-size: 15px; font-weight: 700; }
+
+/* ===== GIFT CARD HISTORY PAGE ===== */
+.gc-history-list { display: flex; flex-direction: column; gap: 10px; }
+.gc-history-item { display: flex; align-items: stretch; background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow); overflow: hidden; }
+.gc-hist-strip { width: 52px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.gc-hist-brand-icon { font-size: 24px; }
+.gc-hist-body { flex: 1; padding: 14px 18px; }
+.gc-hist-top { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+.gc-hist-brand { font-size: 15px; font-weight: 700; }
+.gc-hist-person { font-size: 14px; color: var(--text-2); margin-left: 6px; }
+.gc-hist-right { display: flex; align-items: center; gap: 8px; }
+.gc-hist-amount { font-size: 16px; font-weight: 800; color: var(--primary); }
+.gc-hist-meta { font-size: 12px; color: var(--text-2); display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.gc-hist-code { font-family: 'Courier New', monospace; font-size: 12px; color: #555; }
+.gc-hist-error { font-size: 12px; color: var(--error); margin-top: 4px; background: #fef2f2; padding: 4px 8px; border-radius: 4px; }
+.gc-status-badge { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: capitalize; }
+.gc-status-sent { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+.gc-status-pending { background: #fffbeb; color: #854d0e; border: 1px solid #fde68a; }
+.gc-status-failed { background: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; }
+
 /* ===== LAYOUT PICKER ===== */
 .layout-picker { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
 .layout-option input[type="radio"] { display: none; }
